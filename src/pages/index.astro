@@ -79,6 +79,9 @@ const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
             你的玩环好助手。把终端、截图、设备信息、文件查看和主机连接整理到一条清晰流程里，让手环（表）的日常调试与维护更顺手。
           </p>
         </div>
+        <a class="hero-story-card" href={withBase("story/shellpp/")}>
+          <span>点击前去查看Shell++的故事</span>
+        </a>
         <aside class="hero-side">
           <div class="hero-card hero-card-primary">
             <span class="label">What It Is</span>
@@ -284,6 +287,43 @@ const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
         window.localStorage.setItem("shellpp-site-theme", theme);
       }
 
+      function cleanupThemeTransition(scrollX, scrollY) {
+        window.scrollTo(scrollX, scrollY);
+        root.classList.remove("is-theme-transitioning");
+        isThemeTransitioning = false;
+      }
+
+      function animateThemeTransition() {
+        try {
+          document.documentElement.animate(
+            {
+              opacity: [0, 1],
+              filter: ["blur(8px)", "blur(0px)"],
+            },
+            {
+              duration: 320,
+              easing: "cubic-bezier(0.22, 0.74, 0.18, 1)",
+              fill: "both",
+              pseudoElement: "::view-transition-new(root)",
+            },
+          );
+
+          document.documentElement.animate(
+            {
+              opacity: [1, 0],
+            },
+            {
+              duration: 220,
+              easing: "ease-out",
+              fill: "both",
+              pseudoElement: "::view-transition-old(root)",
+            },
+          );
+        } catch {
+          // If pseudo-element animations are unsupported, keep the transition functional without extra effects.
+        }
+      }
+
       themeToggle?.addEventListener("click", () => {
         if (isThemeTransitioning) {
           return;
@@ -297,24 +337,8 @@ const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
           return;
         }
 
-        const rect = themeToggle.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        const viewportWidth = Math.max(
-          window.innerWidth,
-          document.documentElement.clientWidth,
-          window.visualViewport?.width || 0,
-        );
-        const viewportHeight = Math.max(
-          window.innerHeight,
-          document.documentElement.clientHeight,
-          window.visualViewport?.height || 0,
-        );
-        const endRadius =
-          Math.hypot(Math.max(x, viewportWidth - x), Math.max(y, viewportHeight - y)) * 1.18 + 96;
         const scrollX = window.scrollX;
         const scrollY = window.scrollY;
-
         isThemeTransitioning = true;
         root.classList.add("is-theme-transitioning");
 
@@ -325,31 +349,18 @@ const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
 
           transition.ready
             .then(() => {
-              document.documentElement.animate(
-                {
-                  clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
-                },
-                {
-                  duration: 680,
-                  easing: "cubic-bezier(0.2, 0.72, 0.18, 1)",
-                  fill: "both",
-                  pseudoElement: "::view-transition-new(root)",
-                },
-              );
+              animateThemeTransition();
             })
             .catch(() => {});
 
           transition.finished
             .catch(() => {})
             .finally(() => {
-              window.scrollTo(scrollX, scrollY);
-              root.classList.remove("is-theme-transitioning");
-              isThemeTransitioning = false;
+              cleanupThemeTransition(scrollX, scrollY);
             });
         } catch {
           setStoredTheme(nextTheme);
-          root.classList.remove("is-theme-transitioning");
-          isThemeTransitioning = false;
+          cleanupThemeTransition(scrollX, scrollY);
         }
       });
 
